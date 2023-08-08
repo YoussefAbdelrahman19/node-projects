@@ -1,19 +1,17 @@
 const express = require('express');
-const bcrypt = require("bcrypt");
 const router = express.Router();
-const { Customer } = require('../models');
-const { Address } = require('../models');
-const { Users } = require('../models');
-const { Account } = require('../models');
-const {sign} = require("jsonwebtoken");
-
+const { sign } = require("jsonwebtoken");
+const Customer = require('../models/Customer');
+const Address = require('../models/Address');
+const Users = require('../models/Users');
+const Account = require('../models/Account');
+const bcrypt = require('bcrypt');
 
 router.get("", async (req, res) => {
-    const customers = await Customer.findAll({
-        order: [
-            ['id', 'DESC'],
-        ]
-    });
+    const pipeline=[
+        {$sort:{"_id":-1}}
+    ]
+    const customers = await Customer.aggregate(pipeline);
     res.send({ customers: customers });
 })
 
@@ -22,8 +20,9 @@ router.post("/register", async (req, res) => {
         name: req.body.name,
         profilePic: req.body.profilePic
     }
-    
-    const newCustomer= await Customer.create(customer)
+
+    const newCustomer = new Customer(customer);
+
     const user = {
         name: req.body.name,
         age: req.body.age,
@@ -31,32 +30,38 @@ router.post("/register", async (req, res) => {
         cnic: req.body.cnic,
         phone: req.body.phone,
         email: req.body.email,
-        CustomerId:newCustomer.id
     }
-    const newUser=await Users.create(user)
 
-
-    bcrypt.hash(req.body.password, 10).then((pass) => {
-        Account.create({
-            username: req.body.username,
-            password: pass,
-            UserId:newUser.id
-        })
-    })
     const address = {
         houseNo: req.body.houseNo,
         streetNo: req.body.streetNo,
         city: req.body.city,
-        zipCode: req.body.zipCode,
-        UserId:newUser.id
+        zipCode: req.body.zipCode
     }
-    await Address.create(address);
+
+    bcrypt.hash(req.body.password, 10).then((pass) => {
+        const newUser = new Users(user);
+        const account = new Account({
+            username: req.body.username,
+            password: pass
+        })
+        const newAddress = new Address(address);
+        newUser.account = account;
+        newUser.address = newAddress;
+        newCustomer.user = newUser;
+        account.save();
+        newAddress.save();
+        newCustomer.save();
+        newUser.save();
+    })
+
+    
     res.json({ success: "updated" })
 })
 
 router.post("/login", async (req, res) => {
     const { username, password } = req.body;
-    const account = await Account.findOne({ where: { username: username } });
+    const account = await Account.findOne({ username: username });
     if (!account) {
         res.json({ error: "Customer doesnot exist" })
     } else {
@@ -73,7 +78,7 @@ router.post("/login", async (req, res) => {
                     success: "Logged In",
                     token: accessToken,
                     username: account.username,
-                    id: account.id
+                    id: account._id
                 });
             } else {
                 res.json({ error: "wrong username or password" });
@@ -84,15 +89,17 @@ router.post("/login", async (req, res) => {
 
 router.get("/:id", async (req, res) => {
     const { id } = req.params;
-    //const user= await Users.findOne({where:{id:id}});
-    const customer = await Customer.findByPk(id, { include: Users });
-    const address = await Address.findOne({ where: { UserId: customer.User.id } })
-    const account = await Account.findOne({ where: { UserId: customer.User.id } })
+    const customer = await Customer.findOne({ _id: id }).populate('user');
+    await customer.user.populate('address');
+    const address = customer.user.address;
+    await customer.user.populate('account');
+    const account = customer.user.account;
     res.json({ customer: customer, address: address, account: account })
 })
 
 router.put("/:id", async (req, res) => {
     const { id } = req.params;
+    const customer_ = await Customer.findOne({ _id: id });
     const customer = {
         name: req.body.name,
         profilePic: req.body.profilePic
@@ -112,26 +119,29 @@ router.put("/:id", async (req, res) => {
         zipCode: req.body.zipCode
     }
     bcrypt.hash(req.body.password, 10).then((pass) => {
-        Account.update({
-            username: req.body.username,
-            password: pass
-        },
+        Account.updateOne(
             {
-                where: { UserId: req.body.uid }
-            })
+                _id: customer_.user.account._id
+            },
+
+            {
+                username: req.body.username,
+                password: pass
+            }
+        )
     })
-    await Customer.update(customer, { where: { id: id } })
-    await Users.update(user, { where: { id: req.body.uid } })
-    await Address.update(address, { where: { UserId: req.body.uid } })
+    await Customer.updateOne({ _id: id } ,customer)
+    await Users.updateOne({_id:customer_.user.id},user)
+    await Address.updateOne({_id:customer_.user.address._id},address)
     res.json({ success: "updated" })
 })
 
 router.delete("/:id", async (req, res) => {
     const { id } = req.params;
-    const customer = await Customer.findByPk(id, { include: Users });
-    const address = await Address.findOne({ where: { UserId: customer.User.id } })
-    const account = await Account.findOne({ where: { UserId: customer.User.id } })
-    await Customer.destroy({ where: { id: id } });
+    const customer = await Customer.findOne({_id:id});
+    await Address.deleteOne({_id:customer.user.address._id});
+    await Account.deleteOne({_id:customer.user.account._id});
+    await Customer.destroy({ id: id });
     res.json({ success: "deleted" })
 })
 

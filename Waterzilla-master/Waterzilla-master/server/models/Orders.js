@@ -1,14 +1,23 @@
-module.exports= (sequelize,DataTypes)=>{
-    const Orders= sequelize.define("Orders", {
-        status:{
-            type: DataTypes.STRING,
-            allowNull:false
-        }
-    });
-    Orders.associate=(models)=>{
-        Orders.belongsTo(models.Address);
-        Orders.belongsTo(models.Bottle);
-        Orders.belongsTo(models.Customer)
-    };
-    return Orders;
-}
+const mongoose = require('mongoose');
+const schema = mongoose.Schema;
+
+const ordersSchema = new schema({
+    status: String,
+    Address:
+    {
+        type: schema.Types.ObjectId,
+        ref: 'Address'
+    },
+    Bottle:
+    {
+        type: schema.Types.ObjectId,
+        ref: 'Bottle'
+    },
+    Customer:
+    {
+        type: schema.Types.ObjectId,
+        ref: 'Customer'
+    }
+
+});
+module.exports = mongoose.model('Orders', ordersSchema);

@@ -1,37 +1,28 @@
-module.exports= (sequelize,DataTypes)=>{
-    const Users= sequelize.define("Users", {
-        name:{
-            type: DataTypes.STRING,
-            allowNull:false
-        },
-        age:{
-            type: DataTypes.INTEGER,
-            allowNull:false
-        },
-        gender:{
-            type: DataTypes.STRING,
-            allowNull:false
-        },
-        cnic:{
-            type: DataTypes.BIGINT,
-            allowNull:false
-        },
-        email:{
-            type: DataTypes.STRING,
-            allowNull:false
-        },
-        phone:{
-            type: DataTypes.BIGINT,
-            allowNull:false
-        }
-    });
-    Users.associate=(models)=>{
-        Users.hasOne(models.Account,{
-            onDelete:"cascade",
-        });
-        Users.hasOne(models.Address,{
-            onDelete:"cascade",
-        });
-    };
-    return Users;
-}
+const mongoose = require('mongoose');
+const schema = mongoose.Schema;
+
+const userSchema = new schema({
+    name: String,
+    age: Number,
+    gender: String,
+    cnic: Number,
+    phone: Number,
+    email: String,
+    reviews:
+        [
+            {
+                type: schema.Types.ObjectId,
+                ref: 'Reviews'
+            }
+        ],
+    account: {
+        type: schema.Types.ObjectId,
+        ref: 'Account'
+    },
+    address: {
+        type: schema.Types.ObjectId,
+        ref: 'Address'
+    }
+});
+
+module.exports = mongoose.model('Users', userSchema);

@@ -1,32 +1,38 @@
-const express= require('express');
-const router= express.Router();
-const {Reviews} = require("../models")
-const {Customer} = require("../models")
-const {Users} = require("../models")
-const {Bottle} = require("../models")
+const express = require('express');
+const Account = require('../models/Account');
+const router = express.Router();
+const Bottle = require('../models/Bottle');
+const Customer = require('../models/Customer');
+const Reviews = require('../models/Reviews');
+const Users = require('../models/Users');
 
-router.get("/:bid",async (req,res)=>{
-    const {bid}=req.params;
-    const reviews= await Reviews.findAll({where:{BottleId:bid},include:Customer});
-    res.json({reviews:reviews});
+
+router.get("/:bid", async (req, res) => {
+    const { bid } = req.params;
+    const bottle = await Bottle.findOne({ _id: bid }).populate('reviews');
+    const reviews = bottle.reviews;
+    res.json({ reviews: reviews });
 })
-router.post("",async (req,res)=>{
-    const {uid,description,bid}=req.body;
-    const user= await Users.findOne({where:{id:uid}});
-    await Reviews.create({
-        description:description,
-        BottleId:bid,
-        CustomerId:user.CustomerId
-    })
-    res.json({success:"Created comment"})
-
+router.post("", async (req, res) => {
+    const { uid, description, bid } = req.body;
+    const review = new Reviews({
+        description: description
+    });
+    await review.save();
+    const account = await Account.findOne({ _id: uid });
+    const user = await Users.findOne({ account: account._id })
+    user.reviews.push(review);
+    await user.save();
+    const bottle = await Bottle.findOne({ _id: bid });
+    bottle.reviews.push(review);
+    await bottle.save();
+    res.json({ success: "Created comment" })
 })
-router.delete("/:id",async (req,res)=>{
-    const {id}=req.params;
-    await Reviews.destroy({where:{id:id}});
-    res.json({success:"Created deleted"})
-
+router.delete("/:id", async (req, res) => {
+    const { id } = req.params;
+    await Reviews.findByIdAndDelete(id);
+    res.json({ success: "Created deleted" })
 })
 
 
-module.exports=router;
+module.exports = router;

@@ -1,13 +1,11 @@
-module.exports= (sequelize,DataTypes)=>{
-    const Reviews= sequelize.define("Reviews", {
-        description:{
-            type: DataTypes.STRING,
-            allowNull:false
-        }
-    });
-    Reviews.associate=(models)=>{
-        Reviews.belongsTo(models.Bottle);
-        Reviews.belongsTo(models.Customer)
-    };
-    return Reviews;
-}
+const mongoose = require('mongoose');
+const schema = mongoose.Schema;
+
+const reviewShhema = new schema({
+    description: String,
+    user: {
+        type: schema.Types.ObjectId,
+        ref: 'Users'
+    }
+});
+module.exports = mongoose.model('Reviews', reviewShhema);

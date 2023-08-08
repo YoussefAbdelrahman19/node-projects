@@ -1,28 +1,32 @@
 const express= require('express');
 const router= express.Router();
-const {Orders} = require("../models");
-const {Bottle} = require('../models');
-const {Customer} = require('../models');
-const {Address} = require('../models');
 
-router.get("",async (req,res)=>{
-    const orders=await Orders.findAll({include:[Customer,Bottle],order:[['id','DESC']]});
+const Bottle= require('../models/Bottle');
+const Users= require('../models/Users');
+const Address=require('../models/Address')
+const Orders=require('../models/Orders');
+const Customer=require('../models/Customer');
+
+router.get("",async (req,res)=>{    
+    var orders=await Orders.find({}).populate('Bottle').populate('Customer');
     res.json({orders:orders});
 })
+
 router.get("/:id",async (req,res)=>{
     const {id}=req.params;
-    const orders=await Orders.findByPk(id,{include:[Customer,Bottle,Address]});
+    const orders=await Orders.findById(id).populate('Customer').populate('Bottle').populate('Address');
     res.json({orders:orders});
 })
+
 router.put("/:id",async (req,res)=>{
     const {id}=req.params;
-    await Orders.update(req.body,{where:{id:id}})
+    await Orders.updateOne({_id:id},req.body);
     res.json({success:"updated successfully"})
 })
 
 router.delete("/:id",async (req,res)=>{
     const {id}=req.params;
-    await Orders.destroy({where:{id:id}})
+    await Orders.deleteOne({_id:id})
     res.json({success:"successfully deleted"})
 })
 

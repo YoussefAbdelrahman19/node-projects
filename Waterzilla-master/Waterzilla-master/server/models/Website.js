@@ -1,13 +1,8 @@
-module.exports= (sequelize,DataTypes)=>{
-    const Website= sequelize.define("Website", {
-        aboutUs:{
-            type: DataTypes.TEXT,
-            allowNull:false
-        },
-        image:{
-            type: DataTypes.STRING,
-            allowNull:false
-        }
-    });
-    return Website;
-}
+const mongoose = require('mongoose');
+const schema=mongoose.Schema;
+
+const websiteSchema=new schema({
+    aboutUS:String,
+    image:String
+});
+module.exports=mongoose.model('Website',websiteSchema);

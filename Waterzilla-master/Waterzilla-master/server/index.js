@@ -1,6 +1,5 @@
 const express= require('express');
 const app= express();
-const db= require("./models");
 const cors= require("cors");
 const admin= require('./routes/Admin');
 const waterbottle= require('./routes/Waterbottle');
@@ -12,6 +11,7 @@ const customers=require('./routes/Customers')
 const reports=require('./routes/Reports')
 const cart=require('./routes/Cart')
 const reviews=require('./routes/Reviews')
+const mongoose=require('mongoose')
 
 app.use(cors());
 app.use(express.json());
@@ -28,9 +28,13 @@ app.use('/admin/dashboard/orders',orders);
 app.use('/admin/dashboard/customers',customers);
 app.use('/admin/dashboard/reports',reports);
 
+main().catch(err => console.log(err))
+async function main() {
+  await mongoose.connect('mongodb://127.0.0.1:27017/waterzilla');
+  console.log("connected");
+}
 
-db.sequelize.sync().then(()=>{
-    app.listen(8080, ()=>{
-        console.log("Server is listening on port 8080");
-    })
+//server
+app.listen(8080,()=>{
+    console.log("APP IS LISTENING ON PORT 8080");
 })

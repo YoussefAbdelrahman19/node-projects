@@ -1,39 +1,31 @@
 const express= require('express');
 const router= express.Router();
-const {Orders} = require("../models");
-const {Bottle} = require('../models');
-const sequelize=require('sequelize');
+const Bottle=require('../models/Bottle');
+const Orders=require('../models/Orders');
 
 router.get("",async (req,res)=>{
-    const deliveredOrders= await Orders.findAll({
-        attributes:[[sequelize.fn('sum',sequelize.col('Bottle.price')),'total_sale'],
-        [sequelize.fn('count',sequelize.col('Bottle.price')),'total_deliveries']],
-        where:{status:"delivered"},
-        include:Bottle
-    })
-    const cancelledOrders= await Orders.findAll({
-        attributes:[[sequelize.fn('sum',sequelize.col('Bottle.price')),'total_sale_cancelled'],
-        [sequelize.fn('count',sequelize.col('Bottle.price')),'total_cancelled']],
-        where:{status:"cancelled"},
-        include:Bottle
-    })
-    const newOrders= await Orders.findAll({
-        attributes:
-        [[sequelize.fn('count',sequelize.col('Bottle.price')),'total_new']],
-        where:{status:"new"},
-        include:Bottle
-    })
-    const acceptedOrders= await Orders.findAll({
-        attributes:
-        [[sequelize.fn('count',sequelize.col('Bottle.price')),'total_accepted']],
-        where:{status:"accepted"},
-        include:Bottle
-    })
+
+    const totalNewOrders = await Orders.find({ status: "new" });
+    const totalAcceptedOrders = await Orders.find({ status: "accepted" });
+    const totalDeliveredOrders = await Orders.find({ status: "delivered" });
+    const totalCancelledOrders = await Orders.find({ status: "cancelled" });
+
+    let deliveredOrders = 0;
+    for (const order of totalDeliveredOrders) {
+        await order.populate('Bottle');
+        deliveredOrders += order.Bottle.price;
+    }
+
+    let cancelledOrders = 0;
+    for (const order of totalCancelledOrders) {
+        await order.populate('Bottle');
+        cancelledOrders += order.Bottle.price;
+    }
     res.json({
-        deliveredOrders:deliveredOrders,
-        cancelledOrders:cancelledOrders,
-        newOrders:newOrders,
-        acceptedOrders:acceptedOrders
+        deliveredOrders:[{total_sale:deliveredOrders,total_deliveries:totalDeliveredOrders.length}],
+        cancelledOrders:[{total_sale_cancelled:cancelledOrders,total_cancelled:totalCancelledOrders.length}],
+        newOrders:[{total_new:totalNewOrders.length}],
+        acceptedOrders:[{total_accepted:totalAcceptedOrders.length}]
     });
 })
 

@@ -1,18 +1,15 @@
-module.exports= (sequelize,DataTypes)=>{
-    const Admin= sequelize.define("Admin",{
-        role:{
-            type: DataTypes.STRING,
-            allowNull:false
-        }
-    });
-    Admin.associate=(models)=>{
-        Admin.hasOne(models.Website,{
-            onDelete:"cascade",
-        });
-        Admin.hasMany(models.Notifications,{
-            onDelete:"cascade",
-        });
-        Admin.belongsTo(models.Users);
-    };
-    return Admin;
-}
+const mongoose = require('mongoose');
+const schema=mongoose.Schema;
+
+const adminSchema=new schema({
+    role:String,
+    user: {
+        type: schema.Types.ObjectId,
+        ref: 'Users'
+    },
+    notifications:[{
+        type:schema.Types.ObjectId,
+        ref:'Notifications'
+    }]
+});
+module.exports=mongoose.model('Admin',adminSchema);

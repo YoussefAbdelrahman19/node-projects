@@ -1,24 +1,10 @@
-module.exports= (sequelize,DataTypes)=>{
-    const Address= sequelize.define("Address", {
-        houseNo:{
-            type: DataTypes.INTEGER,
-            allowNull:false
-        },
-        streetNo:{
-            type: DataTypes.INTEGER,
-            allowNull:false
-        },
-        city:{
-            type: DataTypes.STRING,
-            allowNull:false
-        },
-        zipCode:{
-            type: DataTypes.INTEGER,
-            allowNull:false
-        }
-    });
-    Address.associate=(models)=>{
-        Address.hasMany(models.Orders);
-    };
-    return Address;
-}
+const mongoose = require('mongoose');
+const schema=mongoose.Schema;
+
+const addressSchema=new schema({
+    houseNo:Number,
+    streetNo:Number,
+    city:String,
+    zipCode:Number
+});
+module.exports=mongoose.model('Address',addressSchema);

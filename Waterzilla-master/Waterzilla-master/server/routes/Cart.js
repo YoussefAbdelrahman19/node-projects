@@ -1,55 +1,65 @@
-const express= require('express');
-const router= express.Router();
-const {Customer} = require("../models");
-const {Bottle}= require("../models");
-const {Orders}= require("../models");
-const {Notifications}= require("../models");
-const {Users}= require("../models");
-const {Address} = require('../models');
+const express = require('express');
+const router = express.Router();
+const Customer = require("../models/Customer");
+const Bottle = require("../models/Bottle");
+const Orders = require("../models/Orders");
+const Notifications = require("../models/Notifications");
+const Users = require("../models/Users");
+const Address = require('../models/Address');
+const Account = require('../models/Account');
 
-router.get("/:id",async (req,res)=>{
-    const user=await Users.findOne({where:{id:req.params.id}});
-    const orders=await Orders.findAll({
-        where:{CustomerId:user.CustomerId},
-        include:[Customer,Bottle],
-        order:[['id','DESC']]
-    })
-    res.json({orders:orders});
-})
-router.put("/:id",async (req,res)=>{
-    const orders=await Orders.update({status:"cancelled"},{where:{id:req.body.oid}})
-    await Notifications.create({
-        notification:`${req.body.username} cancelled an order`,
-    })
-    const bottle= await Bottle.findOne({where:{id:req.body.bid}});
-    await Bottle.update({quantity:bottle.quantity+1},{where:{id:req.body.bid}});
-    res.json({success:"done"});
+router.get("/:id", async (req, res) => {
+    const account = await Account.findOne({ _id: req.params.id });
+    const user=await Users.findOne({account:account._id});
+    const customer= await Customer.findOne({user:user._id}).populate('orders');
+    res.json({ orders: customer.orders });
 })
 
-router.post("/:id",async (req,res)=>{
-    const bid=req.params.id;
-    const cid=req.body.cid;
-    const username=req.body.username;
-    const user= await Users.findOne({where:{id:cid},include:[Address]})
-    const order=await Orders.create({
-        status:'new',
-        CustomerId:user.CustomerId,
-        BottleId:bid
+router.put("/:id", async (req, res) => {
+    await Orders.updateOne({ _id: req.body.oid }, { status: "cancelled" })
+    const notification = new Notifications({
+        notification: `${req.body.username} cancelled an order`,
     });
-    await Notifications.create({
-        notification:`${username} placed an order`,
-        AdminId:1
+    console.log(req.body);
+    await notification.save();
+    const bottle = await Bottle.findOne({ _id: req.body.bid });
+    console.log(bottle);
+    await Bottle.updateOne({ _id: req.body.bid }, { quantity: bottle.quantity + 1 });
+    res.json({ success: "done" });
+})
+
+router.post("/:id", async (req, res) => {
+    const bid = req.params.id;
+    const cid = req.body.cid;
+    const username = req.body.username;
+    const order = new Orders({
+        status: 'new'
+    });
+    const notification = new Notifications({
+        notification: `${username} placed an order`
     })
-    const bottle= await Bottle.findOne({
-        where:{id:bid}
+    await notification.save()
+    const bottle = await Bottle.findOne({
+        _id: bid
     })
-    await Bottle.update({
-        quantity:bottle.quantity-1
-    },{where:{id:bid}})
-    await Orders.update({AddressId:user.Address.id},{where:{id:order.id}});
-    res.json({success:"successfully done"});
+    await Bottle.updateOne(
+        { 
+            _id: bid 
+        },
+        {
+            quantity: bottle.quantity - 1
+        })
+    const user = await Users.findOne({ account: cid });
+    const customer=await Customer.findOne({user:user._id});
+    order.Bottle=bottle;
+    order.Customer=customer;
+    order.Address=user.address;
+    await order.save();
+    customer.orders.push(order);
+    await customer.save();
+    res.json({ success: "successfully done" });
 })
 
 
 
-module.exports=router;
+module.exports = router;

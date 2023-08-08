@@ -1,18 +1,14 @@
-module.exports= (sequelize,DataTypes)=>{
-    const Company= sequelize.define("Company", {
-        name:{
-            type: DataTypes.STRING,
-            allowNull:false
-        },
-        logo:{
-            type: DataTypes.STRING,
-            allowNull:false
-        }
-    });
-    Company.associate=(models)=>{
-        Company.hasOne(models.Bottle,{
-            onDelete:"cascade",
-        });
-    };
-    return Company;
-}
+const mongoose = require('mongoose');
+const schema = mongoose.Schema;
+
+const companySchema = new schema({
+    name: String,
+    logo: String,
+    bottles:
+        [{
+            type: schema.Types.ObjectId,
+            ref: 'Bottle'
+        }]
+
+});
+module.exports = mongoose.model('Company', companySchema);
